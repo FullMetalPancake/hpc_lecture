@@ -11,13 +11,14 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   int begin = rank * (N / size);
   int end = (rank + 1) * (N / size);
-  printf("%d %d %d\n",rank,begin,end);
+  // printf("%d %d %d\n",rank,begin,end);
   srand48(rank);
   for(int i=begin; i<end; i++) {
     x[i] = drand48();
     y[i] = drand48();
     m[i] = drand48();
     fx[i] = fy[i] = 0;
+    printf("%d %g %g %g\n",i,x[i],y[i],m[i]);
   }
   MPI_Finalize();
 }

@@ -6,12 +6,14 @@ int main() {
   const int N = 20;
   //const int np = 4;
   double x[N], y[N], m[N], fx[N], fy[N];
+  srand48(0);
   for(int i=0; i<N; i++) {
     //if(i % (N / np) == 0) srand48(i / (N / np));
     x[i] = drand48();
     y[i] = drand48();
     m[i] = drand48();
     fx[i] = fy[i] = 0;
+    printf("%d %g %g %g\n",i,x[i],y[i],m[i]);
   }
   for(int i=0; i<N; i++) {
     for(int j=0; j<N; j++) {
