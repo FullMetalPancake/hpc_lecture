@@ -3,6 +3,7 @@
 #include <vector>
 
 // Update bucket in parallel.
+// Each thread represents a key and will increment the corresponding bucket.
 __global__ void putBucket(int *key, int *bucket, int n) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= n) return;
@@ -11,33 +12,32 @@ __global__ void putBucket(int *key, int *bucket, int n) {
 
 // Prefix sum for starting indices.
 // The starting index is the sum of the number of elements in all
-// the buckets with a smaller index.
-__global__ void setStartIndex(int *bucket, int *starting_index, int *b, int range) {
+// the buckets with a smaller index. The ending index is the starting index
+// of the next bucket.
+__global__ void setIndex(int *bucket, int *starting_index, int *ending_index, int *b, int range) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if(i >= range) return;
   for(int j=1; j<range; j<<=1) {
     b[i] = bucket[i] + starting_index[i];
     __syncthreads();
     starting_index[i] += b[i-j];
+    ending_index[i-1] = starting_index[i];
     __syncthreads();
   }
 }
 
-// Initialize ending indices
-__global__ void setEndIndex(int *starting_index, int *ending_index, int range) {
-  int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if(i >= range) return;
-  ending_index[i] = starting_index[i+1];
-}
-
 // Change key value to the corresponding bucket id.
+// Each thread represents a key id and checks in which bucket it belongs.
 // Since the indices for the keys are non-overlapping,
 // we can assign the values in parallel.
-__global__ void setKey(int *key, int *starting_index, int *ending_index, int range) {
+__global__ void setKey(int *key, int *starting_index, int *ending_index, int n, int range) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
-  if(i >= range) return;
-  for(int j = starting_index[i]; j < ending_index[i]; j++) {
-    key[j] = i;
+  if(i >= n) return;
+  for(int j = 0; j < range; j++) {
+    if (starting_index[j] <= i && ending_index[j] > i) {
+      key[i] = j;
+      return;
+    }
   }
 }
 
@@ -72,12 +72,10 @@ int main() {
   // This allows us to use the code for larger n and/or range.
   putBucket<<<(n+M-1)/M,M>>>(key, bucket, n);
   cudaDeviceSynchronize();
-  setStartIndex<<<(range+M-1)/M,M>>>(bucket, starting_index, b, range);
+  setIndex<<<(range+M-1)/M,M>>>(bucket, starting_index, ending_index, b, range);
   cudaDeviceSynchronize();
-  setEndIndex<<<(range+M-1)/M,M>>>(starting_index, ending_index, range);
   ending_index[range-1] = n;
-  cudaDeviceSynchronize();
-  setKey<<<(range+M-1)/M,M>>>(key, starting_index, ending_index, range);
+  setKey<<<(n+M-1)/M,M>>>(key, starting_index, ending_index, n, range);
   cudaDeviceSynchronize();
 
   // Free the space allocated to the arrays.
@@ -85,7 +83,6 @@ int main() {
   cudaFree(bucket);
   cudaFree(starting_index);
   cudaFree(ending_index);
-  // cudaFree(b);
 
   for (int i=0; i<n; i++) {
     printf("%d ",key[i]);
