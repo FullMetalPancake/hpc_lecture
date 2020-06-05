@@ -7,9 +7,11 @@ using namespace std;
 
 int main (int argc, char** argv) {
   // matrix dimension
-  const int NX = 10000, NY = 10000;
+  const int NX = 8, NY = 8;
   
+  // grid of local spaces
   hsize_t dim[2] = {2, 2};
+  
   // mpi communication
   int mpisize, mpirank;
   MPI_Init(&argc, &argv);
@@ -18,13 +20,14 @@ int main (int argc, char** argv) {
   
   // properties of the four different corners EDITED FOR HOMEWORK
   assert(mpisize == dim[0]*dim[1]); 
-  hsize_t N[2] = {NX, NY};
-  hsize_t Nlocal[2] = {NX/dim[0], NY/dim[1]};
+  hsize_t N[2] = {NX, NY}; // full matrix size
+  hsize_t Nlocal[2] = {NX/dim[0], NY/dim[1]}; // 
   hsize_t offset[2] = {mpirank / dim[0], mpirank % dim[0]};
-  for(int i=0; i<2; i++) offset[i] *= Nlocal[i];
-  hsize_t count[2] = {1,1};
-  hsize_t stride[2] = {1,1};
+  hsize_t count[2] = {Nlocal[0], Nlocal[1]};
+  hsize_t stride[2] = {2,2};
   hsize_t block[2] = {1,1};
+  
+  // data to write
   vector<int> buffer(Nlocal[0]*Nlocal[1],mpirank);
   
   // PURPLE HDF5 mpi initialization
@@ -43,7 +46,7 @@ int main (int argc, char** argv) {
 			    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   
   // GREEN HDF5 create tiles for operation in space EDITED FOR HOMEWORK
-  H5Sselect_hyperslab(globalspace, H5S_SELECT_SET, offset, stride, count, Nlocal);
+  H5Sselect_hyperslab(globalspace, H5S_SELECT_SET, offset, stride, count, block);
   
   // PURPLE HDF5 mpi continued
   H5Pclose(plist);
