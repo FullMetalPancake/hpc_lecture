@@ -18,7 +18,7 @@ int main (int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpisize);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpirank);
   
-  // properties of the four different corners EDITED FOR HOMEWORK
+  // properties of the four different spaces EDITED FOR HOMEWORK
   assert(mpisize == dim[0]*dim[1]); 
   hsize_t N[2] = {NX, NY}; // full matrix size
   hsize_t Nlocal[2] = {NX/dim[0], NY/dim[1]}; // 
@@ -53,6 +53,7 @@ int main (int argc, char** argv) {
   plist = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist, H5FD_MPIO_COLLECTIVE);
   
+  // time computation
   auto tic = chrono::steady_clock::now();
   
   // RED HDF5 Write data
