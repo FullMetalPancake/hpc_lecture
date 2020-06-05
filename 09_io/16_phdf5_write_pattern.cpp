@@ -18,10 +18,12 @@ int main (int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpisize);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpirank);
   
-  // properties of the four different spaces EDITED FOR HOMEWORK
-  assert(mpisize == dim[0]*dim[1]); 
+  // properties of the global spaces EDITED FOR HOMEWORK
   hsize_t N[2] = {NX, NY}; // full matrix size
-  hsize_t Nlocal[2] = {NX/dim[0], NY/dim[1]}; // 
+  
+  // properties of the four different local spaces EDITED FOR HOMEWORK
+  assert(mpisize == dim[0]*dim[1]); 
+  hsize_t Nlocal[2] = {NX/dim[0], NY/dim[1]};
   hsize_t offset[2] = {mpirank / dim[0], mpirank % dim[0]};
   hsize_t count[2] = {Nlocal[0], Nlocal[1]};
   hsize_t stride[2] = {2,2};

@@ -15,7 +15,7 @@ int main (int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpisize);
   MPI_Comm_rank(MPI_COMM_WORLD, &mpirank);
   
-  // properties of the four different spaces
+  // check if we have four different spaces
   assert(mpisize == dim[0]*dim[1]);
   
   // PURPLE HDF5 mpi initialization
@@ -29,23 +29,29 @@ int main (int argc, char** argv) {
   hid_t dataset = H5Dopen(file, "dataset", H5P_DEFAULT);
   
   // GREEN HDF5 read 2d space from the write program
-  // NxN for global and NlocalxNlocal for local space
+  // NxN for global space
   hid_t globalspace = H5Dget_space(dataset);
-  hid_t localspace = H5Screate_simple(2, Nlocal, NULL);
   
-  // properties of the four different spaces EDITED FOR HOMEWORK
+  // properties of the global spaces
   int ndim = H5Sget_simple_extent_ndims(globalspace);
   hsize_t N[ndim];
   H5Sget_simple_extent_dims(globalspace, N, NULL);
   hsize_t NX = N[0], NY = N[1];
+  
+  // properties of the four different local spaces EDITED FOR HOMEWORK
   hsize_t Nlocal[2] = {NX/dim[0], NY/dim[1]};
   hsize_t offset[2] = {mpirank / dim[0], mpirank % dim[0]};
-  for(int i=0; i<2; i++) offset[i] *= Nlocal[i];
-  hsize_t count[2] = {1,1};
-  hsize_t stride[2] = {1,1};
+  hsize_t count[2] = {Nlocal[0], Nlocal[1]};
+  hsize_t stride[2] = {2,2};
+  hsize_t block[2] = {1,1};
+  
+  
+  // GREEN HDF5 read 2d space from the write program
+  // NlocalxNlocal for local space
+  hid_t localspace = H5Screate_simple(2, Nlocal, NULL);
   
   // GREEN HDF5 create tiles for reading in specified space
-  H5Sselect_hyperslab(globalspace, H5S_SELECT_SET, offset, stride, count, Nlocal);
+  H5Sselect_hyperslab(globalspace, H5S_SELECT_SET, offset, stride, count, block);
   
   // PURPLE HDF5 mpi continued
   H5Pclose(plist);
