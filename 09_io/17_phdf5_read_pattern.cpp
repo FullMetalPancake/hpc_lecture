@@ -87,11 +87,11 @@ int main(int argc, char** argv) {
     //  for (int i=0; i<Nlocal[0]*Nlocal[1]; i++)
     //    sum += buffer[i];
     for (int i = 0; i < Nlocal[0] * Nlocal[1]; i++) {
-        printf("%d ", buffer[i]);
+//        printf("%d ", buffer[i]);
         sum += buffer[i];
-        if ((i + 1) % Nlocal[0] == 0) {
-            printf("\n");
-        }
+//        if ((i + 1) % Nlocal[0] == 0) {
+//            printf("\n");
+//        }
     }
 
     printf("sum=%d\n", sum);

@@ -7,7 +7,7 @@ using namespace std;
 
 int main(int argc, char** argv) {
     // matrix dimension
-    const int NX = 18, NY = 18;
+    const int NX = 10000, NY = 10000;
 
     // grid of local spaces
     hsize_t dim[2] = {2, 2};
