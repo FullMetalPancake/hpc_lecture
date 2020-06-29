@@ -1,5 +1,5 @@
 //============================================================================
-// Name        : navier-stokes-mpi.cpp
+// Name        : navier-stokes-cavity.cpp
 // Author      : Steven Ge
 // Description : navier-stokes implementation in c++.
 //				 The code is a translation of the provided python code.
@@ -186,12 +186,14 @@ int main() {
 	auto start = std::chrono::high_resolution_clock::now();
 	cavity_flow(nt, u, v, dt, dx, dy, p, rho, nu, nit);
 	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::microseconds>( stop - start ).count();
-	std::cout << duration;
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( stop - start ).count();
+    ofstream file("result/milliseconds");
+	file << duration;
+	file.close();
 
-	save_matrix_to_csv(u, "u.csv");
-	save_matrix_to_csv(v, "v.csv");
-	save_matrix_to_csv(p, "p.csv");
+	save_matrix_to_csv(u, "result/u.csv");
+	save_matrix_to_csv(v, "result/v.csv");
+	save_matrix_to_csv(p, "result/p.csv");
 	return 0;
 
 }
