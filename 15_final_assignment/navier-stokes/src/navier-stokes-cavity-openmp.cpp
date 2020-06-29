@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iostream>
 #include <fstream>
+#include <chrono>
 using namespace std;
 
 /*
@@ -27,7 +28,9 @@ void save_matrix_to_csv(double (&arr)[nx][ny], string file_name) {
 
 template<size_t nx, size_t ny>
 void copy_matrix(double (&from)[nx][ny], double (&to)[nx][ny]) {
+#pragma omp parallel for
 	for (int i = 0; i < nx; i++) {
+#pragma omp parallel for
 		for (int j = 0; j < ny; j++) {
 			to[i][j] = from[i][j];
 		}
@@ -35,18 +38,10 @@ void copy_matrix(double (&from)[nx][ny], double (&to)[nx][ny]) {
 }
 
 template<size_t size_x, size_t size_y>
-void printmatrix(double (&arr)[size_x][size_y]) {
-	for (int i = 0; i < size_x; i++) {
-		for (int j = 0; j < size_y; j++) {
-			printf("%f ", arr[i][j]);
-		}
-		printf("\n");
-	}
-}
-
-template<size_t size_x, size_t size_y>
 void initialize_matrix(double (&arr)[size_x][size_y]) {
+#pragma omp parallel for
 	for (int i = 0; i < size_x; i++) {
+#pragma omp parallel for
 		for (int j = 0; j < size_y; j++) {
 			arr[i][j] = 0.0;
 		}
@@ -61,6 +56,7 @@ void build_up_b(double (&b)[nx][ny], double rho, double dt, double (&u)[nx][ny],
 		double v[nx][ny], double dx, double dy) {
 
 	for (int i = 1; i < nx - 1; i++) {
+#pragma omp parallel for
 		for (int j = 1; j < ny - 1; j++) {
 			b[i][j] =
 					(rho
@@ -90,7 +86,9 @@ void pressure_poisson(double (&p)[nx][ny], double dx, double dy,
 
 	for (int i = 0; i < nit; i++) {
 		copy_matrix(p, pn);
+#pragma omp parallel for
 		for (int j = 1; j < nx - 1; j++) {
+#pragma omp parallel for
 			for (int k = 1; k < ny - 1; k++) {
 				p[j][k] = (((pn[j][k + 1] + pn[j][k - 1]) * dy * dy
 						+ (pn[j + 1][k] + pn[j - 1][k]) * dx * dx)
@@ -99,11 +97,13 @@ void pressure_poisson(double (&p)[nx][ny], double dx, double dy,
 								* b[j][k]);
 			}
 		}
+#pragma omp parallel for
 		for (int i = 0; i < nx; i++) {
 			p[i][ny - 1] = p[i][ny - 2];
 			p[i][0] = p[i][1];
 		}
 
+#pragma omp parallel for
 		for (int j = 0; j < ny; j++) {
 			p[0][j] = p[1][j];
 			p[nx - 1][j] = 0;
@@ -120,6 +120,7 @@ void cavity_flow(int nt, double (&u)[nx][ny], double (&v)[nx][ny], double dt,
 	double b[nx][ny];
 	initialize_matrix(b);
 
+#pragma omp parallel for
 	for (int i = 0; i < nt; i++) {
 		copy_matrix(u, un);
 		copy_matrix(v, vn);
@@ -127,7 +128,9 @@ void cavity_flow(int nt, double (&u)[nx][ny], double (&v)[nx][ny], double dt,
 		build_up_b(b, rho, dt, u, v, dx, dy);
 		pressure_poisson(p, dx, dy, b, nit);
 
+#pragma omp parallel for
 		for (int j = 1; j < nx - 1; j++) {
+#pragma omp parallel for
 			for (int k = 1; k < ny - 1; k++) {
 				u[j][k] = (un[j][k]
 						- un[j][k] * dt / dx * (un[j][k] - un[j][k - 1])
@@ -154,6 +157,7 @@ void cavity_flow(int nt, double (&u)[nx][ny], double (&v)[nx][ny], double dt,
 														+ vn[j - 1][k])));
 			}
 		}
+#pragma omp parallel for
 		for (int j = 0; j < nx; j++) {
 			u[j][0] = 0;
 			u[j][ny - 1] = 0;
@@ -161,6 +165,7 @@ void cavity_flow(int nt, double (&u)[nx][ny], double (&v)[nx][ny], double dt,
 			v[j][ny - 1] = 0;
 		}
 
+#pragma omp parallel for
 		for (int j = 0; j < ny; j++) {
 			u[0][j] = 0;
 			u[nx - 1][j] = 1;
@@ -192,7 +197,12 @@ int main() {
 	initialize_matrix(p);
 	initialize_matrix(b);
 
+	auto start = std::chrono::high_resolution_clock::now();
 	cavity_flow(nt, u, v, dt, dx, dy, p, rho, nu, nit);
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>( stop - start ).count();
+	std::cout << duration;
+
 	save_matrix_to_csv(u, "u.csv");
 	save_matrix_to_csv(v, "v.csv");
 	save_matrix_to_csv(p, "p.csv");
