@@ -1,5 +1,5 @@
 //============================================================================
-// Name        : navier-stokes-cavity.cpp
+// Name        : navier-stokes-mpi.cpp
 // Author      : Steven Ge
 // Description : navier-stokes implementation in c++.
 //				 The code is a translation of the provided python code.
@@ -162,8 +162,8 @@ void cavity_flow(int nt, double (&u)[nx][ny], double (&v)[nx][ny], double dt,
 }
 
 int main() {
-	const int nx = 41;
-	const int ny = 41;
+	const int nx = 100;
+	const int ny = 100;
 	const int nt = 500;
 	const int nit = 50;
 	const double dx = 2.0 / (nx - 1);

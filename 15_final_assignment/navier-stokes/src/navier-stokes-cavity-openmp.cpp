@@ -1,5 +1,5 @@
 //============================================================================
-// Name        : navier-stokes.cpp
+// Name        : navier-stokes-openmp.cpp
 // Author      : Steven Ge
 // Description : navier-stokes implementation in c++.
 //				 The code is a translation of the provided python code.
