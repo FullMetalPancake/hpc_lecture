@@ -171,7 +171,7 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    7 milliseconds
+    5 milliseconds
 
 
 #### Run
@@ -216,5 +216,5 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    8 milliseconds
+    4 milliseconds
 

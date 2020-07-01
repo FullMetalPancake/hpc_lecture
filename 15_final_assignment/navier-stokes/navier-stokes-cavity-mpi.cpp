@@ -32,17 +32,6 @@ void save_matrix_to_csv(double (&arr)[n], string file_name, int nx, int ny) {
 	file.close();
 }
 
-void save_matrix_to_csv(double *arr, string file_name, int nx, int ny) {
-	ofstream file( file_name);
-	for (int i = 0; i < nx; i++) {
-		for (int j = 0; j < ny - 1; j++) {
-			file << arr[i * nx + j] << ',';
-		}
-		file << arr[i * nx + ny - 1] << '\n';
-	}
-	file.close();
-}
-
 template<size_t n>
 void copy_matrix(double (&from)[n], double (&to)[n]) {
 	for (int i = 0; i < n; i++) {
@@ -54,32 +43,6 @@ template<size_t n>
 void initialize_matrix(double (&arr)[n]) {
 	for (int i = 0; i < n; i++) {
 		arr[i] = 0.0;
-	}
-}
-
-template<size_t n>
-void vector_addition(double (&arr1)[n], double (&arr2)[n], double (&result)[n]) {
-	for (int i = 0; i < n; i++) {
-		result[i] = arr1[i] + arr2[i];
-	}
-}
-
-void initialize_matrix(double *arr, int n) {
-	for (int i = 0; i < n; i++) {
-		arr[i] = 0.0;
-	}
-}
-
-template<size_t n>
-void get_sub_vector(double *source, double (&target)[n], int begin, int end) {
-	for (int i = begin; i < end; i++) {
-		target[i-begin] = source[i];
-	}
-}
-
-void get_sub_vector(double *source, double *target, int begin, int end) {
-	for (int i = begin; i < end; i++) {
-		target[i - begin] = source[i];
 	}
 }
 
