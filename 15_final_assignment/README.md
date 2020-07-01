@@ -22,7 +22,7 @@ ny = 100
 This is the result of the implementation of the Navier-Stokes equation in c++. This code is essentially the provided python code translated to c++.
 
 #### Run
-$ g++ navier-stokes-cavity.cpp
+$ g++ navier-stokes-cavity.cpp <br>
 $ ./a.out
 #### Result
 
@@ -73,7 +73,7 @@ f.close()
 This is the result of extending the above code with OpenMP. Most of the for-loops, which represent matrix operations can be parallized. To add the parallelization, "#pragma omp parallel for" has been added above the for-loops.
 
 #### Run
-$ g++ navier-stokes-cavity-openmp.cpp -fopenmp
+$ g++ navier-stokes-cavity-openmp.cpp -fopenmp <br>
 $ ./a.out
 #### Result
 
@@ -130,7 +130,7 @@ This is the result of extending the original c++ code with MPI. The implementati
 This ensures that, when matrix b, p, or u is used for another calculation (occurs on the left-hand side of an assignment), then the values are up to date in each process.
 
 #### Run
-$ mpicxx navier-stokes-cavity-mpi.cpp
+$ mpicxx navier-stokes-cavity-mpi.cpp <br>
 $ mpirun -np 2 a.out
 #### Result
 
@@ -175,7 +175,7 @@ f.close()
 
 
 #### Run
-$ mpicxx navier-stokes-cavity-mpi.cpp
+$ mpicxx navier-stokes-cavity-mpi.cpp <br>
 $ mpirun -np 4 a.out
 #### Result
 
