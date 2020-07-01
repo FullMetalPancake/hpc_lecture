@@ -5,6 +5,8 @@ Cavity Flow with Navier–Stokes
 Original python code and result
 ----
 
+This is the provided python code from the 13th lecture about the Navier-Stokes equation
+
 
 ```python
 import numpy
@@ -151,7 +153,7 @@ pyplot.ylabel('Y');
 ```
 
 
-![png](output_8_0.png)
+![png](output_9_0.png)
 
 
 #### Computation time
@@ -161,11 +163,13 @@ pyplot.ylabel('Y');
 print (str(round(computation_time * 1000)) + " milliseconds")
 ```
 
-    620 milliseconds
+    421 milliseconds
 
 
 C++ result
 ---
+
+The C++ code can be found in the folder "navier-stokes".
 
 
 ```python
@@ -173,6 +177,8 @@ from numpy import genfromtxt
 ```
 
 ### No parallelization
+
+This is the result of the implementation of the Navier-Stokes equation in c++. This code is essentially the above python code translated to c++.
 
 
 ```python
@@ -200,7 +206,7 @@ pyplot.ylabel('Y');
 ```
 
 
-![png](output_15_0.png)
+![png](output_18_0.png)
 
 
 #### Computation time
@@ -213,10 +219,12 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    3542 milliseconds
+    7058 milliseconds
 
 
 ### OpenMP
+
+This is the result of extending the above code with OpenMP. Most of the for-loops, which represent matrix operations can be parallized. To add the parallelization, "#pragma omp parallel for" has been added above the for-loops.
 
 
 ```python
@@ -244,7 +252,7 @@ pyplot.ylabel('Y');
 ```
 
 
-![png](output_20_0.png)
+![png](output_24_0.png)
 
 
 
@@ -255,12 +263,101 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    2 milliseconds
+    1 milliseconds
 
 
 ### MPI
 
+This is the result of extending the original c++ code with MPI. This result is achieved by running the code with 4 processes. As you can see in the result, there seems to be a problem with broadcasting the data to the other processes. The implementation broadcast the data at the end of the functions:
+
+\- build_up_b
+
+\- pressure_poisson
+
+\- cavity_flow
+
+To notify the other processes of their result. It seems like the data is cut off, as the larger the number of processes, the sparser the matrices become. Therefore, I believe the problem lies with the indexation in the functions.
+
+This result is achieved by running the code with 2 processes.
+
 
 ```python
-
+ucpp_mpi = genfromtxt('navier-stokes/result/u-mpi-2.csv', delimiter=',')
+vcpp_mpi = genfromtxt('navier-stokes/result/v-mpi-2.csv', delimiter=',')
+pcpp_mpi = genfromtxt('navier-stokes/result/p-mpi-2.csv', delimiter=',')
 ```
+
+
+```python
+x = numpy.linspace(0, 2, nx)
+y = numpy.linspace(0, 2, ny)
+X, Y = numpy.meshgrid(x, y)
+
+fig = pyplot.figure(figsize=(11,7), dpi=100)
+# plotting the pressure field as a contour
+pyplot.contourf(X, Y, pcpp_mpi, alpha=0.5, cmap=cm.viridis)  
+pyplot.colorbar()
+# plotting the pressure field outlines
+pyplot.contour(X, Y, pcpp_mpi, cmap=cm.viridis)  
+# plotting velocity field
+pyplot.quiver(X[::2, ::2], Y[::2, ::2], ucpp_mpi[::2, ::2], vcpp_mpi[::2, ::2]) 
+pyplot.xlabel('X')
+pyplot.ylabel('Y');
+```
+
+
+![png](output_30_0.png)
+
+
+
+```python
+f = open('navier-stokes/result/milliseconds-mpi-2', 'r')
+time = f.read()
+print (time + " milliseconds")
+f.close()
+```
+
+    5 milliseconds
+
+
+This result is achieved by running the code with 4 processes.
+
+
+```python
+ucpp_mpi = genfromtxt('navier-stokes/result/u-mpi-4.csv', delimiter=',')
+vcpp_mpi = genfromtxt('navier-stokes/result/v-mpi-4.csv', delimiter=',')
+pcpp_mpi = genfromtxt('navier-stokes/result/p-mpi-4.csv', delimiter=',')
+```
+
+
+```python
+x = numpy.linspace(0, 2, nx)
+y = numpy.linspace(0, 2, ny)
+X, Y = numpy.meshgrid(x, y)
+
+fig = pyplot.figure(figsize=(11,7), dpi=100)
+# plotting the pressure field as a contour
+pyplot.contourf(X, Y, pcpp_mpi, alpha=0.5, cmap=cm.viridis)  
+pyplot.colorbar()
+# plotting the pressure field outlines
+pyplot.contour(X, Y, pcpp_mpi, cmap=cm.viridis)  
+# plotting velocity field
+pyplot.quiver(X[::2, ::2], Y[::2, ::2], ucpp_mpi[::2, ::2], vcpp_mpi[::2, ::2]) 
+pyplot.xlabel('X')
+pyplot.ylabel('Y');
+```
+
+
+![png](output_34_0.png)
+
+
+
+```python
+f = open('navier-stokes/result/milliseconds-mpi-4', 'r')
+time = f.read()
+print (time + " milliseconds")
+f.close()
+```
+
+    3 milliseconds
+
