@@ -163,7 +163,7 @@ pyplot.ylabel('Y');
 print (str(round(computation_time * 1000)) + " milliseconds")
 ```
 
-    421 milliseconds
+    639 milliseconds
 
 
 C++ result
@@ -219,7 +219,7 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    7058 milliseconds
+    7928 milliseconds
 
 
 ### OpenMP
@@ -268,13 +268,13 @@ f.close()
 
 ### MPI
 
-This is the result of extending the original c++ code with MPI. This result is achieved by running the code with 4 processes. As you can see in the result, there seems to be a problem with broadcasting the data to the other processes. The implementation broadcast the data at the end of the functions:
+This is the result of extending the original c++ code with MPI. The implementation broadcasts the following data:
 
-\- build_up_b
+\- matrix b: at the end of function "build_up_b"
 
-\- pressure_poisson
+\- matrix p: every iteration in the first loop of function "pressure_poisson"
 
-\- cavity_flow
+\- matrix u and v: every iteration in the first loop of "cavity_flow"
 
 To notify the other processes of their result. It seems like the data is cut off, as the larger the number of processes, the sparser the matrices become. Therefore, I believe the problem lies with the indexation in the functions.
 
@@ -317,7 +317,7 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    5 milliseconds
+    7 milliseconds
 
 
 This result is achieved by running the code with 4 processes.
@@ -359,5 +359,5 @@ print (time + " milliseconds")
 f.close()
 ```
 
-    3 milliseconds
+    8 milliseconds
 

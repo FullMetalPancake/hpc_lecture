@@ -120,6 +120,7 @@ void cavity_flow(int nt, double (&u)[n], double (&v)[n], double dt,
 
 		build_up_b(b, rho, dt, u, v, dx, dy, nx, ny, i);
 		pressure_poisson(p, dx, dy, b, nit, nx, ny);
+        save_matrix_to_csv(p, "result/test/p" + std::to_string(i), nx, ny);
 
 		for (int j = 0; j < (nx - 2)*(ny - 2); j++) {
             int k = j / (ny - 2);

@@ -107,8 +107,7 @@ void allgatherv_helper(int size, int rank, int N, double *bcast, double *data, i
     }
 
     MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                    &(bcast[0]), counts, disps, MPI_INT, MPI_COMM_WORLD);
-
+                    &(bcast[0]), counts, disps, MPI_DOUBLE, MPI_COMM_WORLD);
     broadcast_parser(bcast, data, nx, ny, N);
     
     delete [] disps;
@@ -130,6 +129,7 @@ void build_up_b(double (&b)[n], double rho, double dt, double (&u)[n],
     
     double b_bcast[N];
     
+// 	for (int k = 0; k < N; k++) {
 	for (int k = begin; k < end; k++) {
         int i = k / (ny-2);
         int j = k % (ny - 2);
@@ -154,51 +154,105 @@ void build_up_b(double (&b)[n], double rho, double dt, double (&u)[n],
         b_bcast[k] = b[(i+1)*nx + j + 1];
 	}
     
-    MPI_Barrier(MPI_COMM_WORLD);
     allgatherv_helper(size, rank, N, b_bcast, b, nx, ny);
-    save_matrix_to_csv(b, "result/test/b-mpi.csv" + std::to_string(temp), nx, ny);
 }
 
-
 template<size_t n>
-void pressure_poisson(double (&p)[n], double dx, double dy,
-		double (&b)[n], int nit, int nx, int ny, int size, int rank) {
-	double pn[n];
+void poission_comp(double (&b)[n], double (&p)[n], double (&pn)[n],
+		double dx, double dy, int nx, int ny, int size, int rank) {
     
     int N = (nx - 2)*(ny - 2);
     
     int begin = (N / size) * rank;
 	int end = (N / size) * (rank + 1);
+    
     double p_bcast[N];
     
-	for (int i = 0; i < nit; i++) {
-		copy_matrix(p, pn);
+	for (int k = begin; k < end; k++) {
+// 	for (int k = 0; k < N; k++) {
+        int i = k / (ny - 2);
+        int j = k % (ny - 2);
+        p[(i+1)*nx + j+1] = (((pn[(i+1)*nx + j + 2] + pn[(i+1)*nx + j]) * dy * dy
+                + (pn[(i + 2)*nx + j + 1] + pn[i*nx + j + 1]) * dx * dx)
+                / (2 * (dx * dx + dy * dy))
+                - (dx * dx * dy * dy) / (2 * (dx * dx + dy * dy))
+                        * b[(i+1)*nx + j + 1]);
         
-		for (int j = begin; j < end; j++) {
-            int k = j / (ny - 2);
-            int l = j % (ny - 2);
-            p[(k+1)*nx + l+1] = (((pn[(k+1)*nx + l + 2] + pn[(k+1)*nx + l]) * dy * dy
-                    + (pn[(k + 2)*nx + l + 1] + pn[k*nx + l + 1]) * dx * dx)
-                    / (2 * (dx * dx + dy * dy))
-                    - (dx * dx * dy * dy) / (2 * (dx * dx + dy * dy))
-                            * b[(k+1)*nx + l + 1]);
-            
-            p_bcast[j] = p[(k+1)*nx + l+1];
-        }
-		
+        p_bcast[k] = p[(i+1)*nx + j+1];
+    }
+    
+    allgatherv_helper(size, rank, N, p_bcast, p, nx, ny);
+}
+
+
+template<size_t n>
+void cavity_flow_comp(double (&u)[n], double (&v)[n], double (&un)[n], double (&vn)[n], double (&p)[n],
+		double dx, double dy, double dt, double rho, double nu, int nx, int ny, int size, int rank) {
+    
+    int N = (nx - 2)*(ny - 2);
+    
+    int begin = (N / size) * rank;
+	int end = (N / size) * (rank + 1);
+    
+    double u_bcast[N];
+    double v_bcast[N];
+    
+	for (int k = begin; k < end; k++) {
+//     for (int k = 0; k < N; k++) {
+        int i = k / (ny - 2);
+        int j = k % (ny - 2);
+        u[(i+1)*nx + j+1] = (un[(i+1)*nx + j+1]
+                - un[(i+1)*nx + j+1] * dt / dx * (un[(i+1)*nx + j+1] - un[(i+1)*nx + j])
+                - vn[(i+1)*nx + j+1] * dt / dy * (un[(i+1)*nx + j+1] - un[i*nx + j+1])
+                - dt / (2 * rho * dx) * (p[(i+1)*nx + j + 2] - p[(i+1)*nx + j])
+                + nu
+                        * (dt / (dx * dx)
+                                * (un[(i+1)*nx + j + 2] - 2 * un[(i+1)*nx + j + 1]
+                                        + un[(i+1)*nx + j])
+                                + dt / (dy * dy)
+                                        * (un[(i + 2)*nx + j + 1] - 2 * un[(i+1)*nx + j + 1]
+                                                + un[i*nx + j + 1])));
+
+        v[(i+1)*nx + j + 1] = (vn[(i+1)*nx + j + 1]
+                - un[(i+1)*nx + j+1] * dt / dx * (vn[(i+1)*nx + j+1] - vn[(i+1)*nx + j])
+                - vn[(i+1)*nx + j+1] * dt / dy * (vn[(i+1)*nx + j+1] - vn[i*nx + j+1])
+                - dt / (2 * rho * dy) * (p[(i + 2)*nx + j+1] - p[i*nx + j+1])
+                + nu
+                        * (dt / (dx * dx)
+                                * (vn[(i+1)*nx + j + 2] - 2 * vn[(i+1)*nx + j+1]
+                                        + vn[(i+1)*nx + j])
+                                + dt / (dy * dy)
+                                        * (vn[(i + 2)*nx + j+1] - 2 * vn[(i+1)*nx + j+1]
+                                                + vn[i*nx + j+1])));
+    
+        u_bcast[k] = u[(i+1)*nx + j+1];
+        v_bcast[k] = v[(i+1)*nx + j + 1];
+    }
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    allgatherv_helper(size, rank, N, u_bcast, u, nx, ny);
+    allgatherv_helper(size, rank, N, v_bcast, v, nx, ny);
+}
+
+template<size_t n>
+void pressure_poisson(double (&p)[n], double dx, double dy,
+		double (&b)[n], int nit, int nx, int ny, int size, int rank) {
+	double pn[n];
+	for (int i = 0; i < nit; i++) {
+        
+		copy_matrix(p, pn);
+//         save_matrix_to_csv(pn, "result/test/pn-mpi-" + std::to_string(i), nx, ny);
+        poission_comp(b, p, pn, dx, dy, nx, ny, size, rank);
 		for (int j = 0; j < nx; j++) {
 			p[j*nx + ny - 1] = p[j*nx + ny - 2];
 			p[j*nx] = p[j*nx + 1];
 		}
-
 		for (int j = 0; j < ny; j++) {
 			p[j] = p[nx+ j];
 			p[(nx - 1)*nx + j] = 0;
 		}
+		
 	}
-	
-	MPI_Barrier(MPI_COMM_WORLD);
-    allgatherv_helper(size, rank, N, p_bcast, p, nx, ny);
 }
 
 
@@ -207,18 +261,11 @@ void cavity_flow(int nt, double (&u)[n], double (&v)[n], double dt,
 		double dx, double dy, double (&p)[n], double rho, double nu,
 		int nit, int nx, int ny, int size, int rank) {
     
-    int N = (nx - 2)*(ny - 2);
-    
-    int begin = (N / size) * rank;
-	int end = (N / size) * (rank + 1);
-    
 	double un[n];
 	double vn[n];
 	double b[n];
 	initialize_matrix(b);
     
-    double u_bcast[N];
-    double v_bcast[N];
     
 
 	for (int i = 0; i < nt; i++) {
@@ -227,38 +274,9 @@ void cavity_flow(int nt, double (&u)[n], double (&v)[n], double dt,
 
 		build_up_b(b, rho, dt, u, v, dx, dy, nx, ny, size, rank, i);
 		pressure_poisson(p, dx, dy, b, nit, nx, ny, size, rank);
+//         save_matrix_to_csv(b, "result/test/b-mpi" + std::to_string(i), nx, ny);
 
-		for (int j = begin; j < end; j++) {
-            int k = j / (ny - 2);
-            int l = j % (ny - 2);
-            u[(k+1)*nx + l+1] = (un[(k+1)*nx + l+1]
-                    - un[(k+1)*nx + l+1] * dt / dx * (un[(k+1)*nx + l+1] - un[(k+1)*nx + l])
-                    - vn[(k+1)*nx + l+1] * dt / dy * (un[(k+1)*nx + l+1] - un[k*nx + l+1])
-                    - dt / (2 * rho * dx) * (p[(k+1)*nx + l + 2] - p[(k+1)*nx + l])
-                    + nu
-                            * (dt / (dx * dx)
-                                    * (un[(k+1)*nx + l + 2] - 2 * un[(k+1)*nx + l + 1]
-                                            + un[(k+1)*nx + l])
-                                    + dt / (dy * dy)
-                                            * (un[(k + 2)*nx + l + 1] - 2 * un[(k+1)*nx + l + 1]
-                                                    + un[k*nx + l + 1])));
-
-            v[(k+1)*nx + l + 1] = (vn[(k+1)*nx + l + 1]
-                    - un[(k+1)*nx + l+1] * dt / dx * (vn[(k+1)*nx + l+1] - vn[(k+1)*nx + l])
-                    - vn[(k+1)*nx + l+1] * dt / dy * (vn[(k+1)*nx + l+1] - vn[k*nx + l+1])
-                    - dt / (2 * rho * dy) * (p[(k + 2)*nx + l+1] - p[k*nx + l+1])
-                    + nu
-                            * (dt / (dx * dx)
-                                    * (vn[(k+1)*nx + l + 2] - 2 * vn[(k+1)*nx + l+1]
-                                            + vn[(k+1)*nx + l])
-                                    + dt / (dy * dy)
-                                            * (vn[(k + 2)*nx + l+1] - 2 * vn[(k+1)*nx + l+1]
-                                                    + vn[k*nx + l+1])));
-        
-            u_bcast[j] = u[(k+1)*nx + l+1];
-            v_bcast[j] = v[(k+1)*nx + l + 1];
-        }
-		
+        cavity_flow_comp(u, v, un, vn, p, dx, dy, dt, rho, nu, nx, ny, size, rank);
 		
 		for (int j = 0; j < nx; j++) {
 			u[j*nx] = 0;
@@ -274,11 +292,6 @@ void cavity_flow(int nt, double (&u)[n], double (&v)[n], double dt,
 			v[(nx - 1)*nx + j] = 0;
 		}
 	}
-	
-	
-	MPI_Barrier(MPI_COMM_WORLD);
-    allgatherv_helper(size, rank, N, u_bcast, u, nx, ny);
-    allgatherv_helper(size, rank, N, v_bcast, v, nx, ny);
 }
 
 
@@ -302,10 +315,12 @@ int main(int argc, char** argv) {
 	double u[nx*ny];
 	double v[nx*ny];
 	double p[nx*ny];
+	double b[nx*ny];
 
 	initialize_matrix(u);
 	initialize_matrix(v);
 	initialize_matrix(p);
+	initialize_matrix(b);
 
 	auto start = std::chrono::high_resolution_clock::now();
 	cavity_flow(nt, u, v, dt, dx, dy, p, rho, nu, nit, nx, ny, size, rank);
